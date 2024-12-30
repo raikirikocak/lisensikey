@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 from threading import Thread
+from flask_cors import CORS
 
 # Fungsi untuk menyimpan status login ke file JSON
 def save_login_status():
@@ -134,7 +135,7 @@ def display_active_keys():
 
 # Flask API untuk validasi key
 app = Flask(__name__)
-
+CORS(app)
 @app.route("/validate_key", methods=["POST"])
 def validate_key():
     data = request.json
