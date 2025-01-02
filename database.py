@@ -154,7 +154,7 @@ def validate_key():
     return jsonify({"success": False, "message": "Key tidak valid"}), 404
 
 def run_flask():
-    print("Flask API berjalan di http://127.0.0.1:5000")
+    print("Flask API berjalan di http://35.201.127.49:5000")
     app.run(host="0.0.0.0", port=5000)
 
 # Main function
