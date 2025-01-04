@@ -155,7 +155,7 @@ def validate_key():
 
 def run_flask():
     print("Flask API berjalan di http://35.201.127.49:5000")
-    app.run(host="0.0.0.0", port=5000)
+    CORS(app, origins=["https://lisensikey-guenihbos.streamlit.app"])
 
 # Main function
 def main():
