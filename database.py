@@ -84,7 +84,7 @@ def api_settings():
         return
 
     # Tetapkan URL API Flask
-    flask_ip = f"http://{server_ip}:5000"  # Asumsi Flask berjalan di port 5000
+    flask_ip = f"http://{server_ip}:19452"  # Asumsi Flask berjalan di port 5000
     flask_url = "/validate_key"
 
     # Tampilkan informasi IP dan URL API Flask
