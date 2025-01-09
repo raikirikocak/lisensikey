@@ -84,7 +84,7 @@ def api_settings():
         return
 
     # Tetapkan URL API Flask
-    flask_ip = f"http://{server_ip}:19452"  # Asumsi Flask berjalan di port 5000
+    flask_ip = f"http://{server_ip}:19958"  # Asumsi Flask berjalan di port 5000
     flask_url = "/validate_key"
 
     # Tampilkan informasi IP dan URL API Flask
@@ -203,7 +203,7 @@ def run_flask():
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
     CORS(app, origins=["https://lisensikey-guenihbos.streamlit.app"])
-    app.run(host='0.0.0.0', port=19452)
+    app.run(host='0.0.0.0', port=19958)
     
 
 
