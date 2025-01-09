@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 from threading import Thread
 from flask_cors import CORS
+import requests
+import socket
 
 # Fungsi untuk menyimpan status login ke file JSON
 def save_login_status():
@@ -51,7 +53,13 @@ def dashboard_page():
     username = st.session_state.get("username", "Unknown")
     st.write(f"Selamat datang, {username}!")
 
-    action = st.radio("Pilih Aksi", ["Buat Key Baru", "Hapus Key", "Lihat Key yang Aktif", "Logout"])
+    action = st.radio("Pilih Aksi", [
+        "Buat Key Baru", 
+        "Hapus Key", 
+        "Lihat Key yang Aktif", 
+        "Pengaturan IP dan URL API Flask", 
+        "logout"
+    ])
 
     if action == "Buat Key Baru":
         create_key()
@@ -59,8 +67,43 @@ def dashboard_page():
         delete_key()
     elif action == "Lihat Key yang Aktif":
         display_active_keys()
-    elif action == "Logout":
-        logout()
+    elif action == "Pengaturan IP dan URL API Flask":
+        api_settings()
+    elif action == "logout":
+            logout()  # Memanggil pengaturan IP dan URL API Flask
+
+def api_settings():
+    st.subheader("Pengaturan IP dan URL API Flask")
+
+    # Ambil alamat IP server secara otomatis
+    try:
+        hostname = socket.gethostname()
+        server_ip = socket.gethostbyname(hostname)  # Mendapatkan IP server
+    except Exception as e:
+        st.error(f"Gagal mendapatkan IP server: {e}")
+        return
+
+    # Tetapkan URL API Flask
+    flask_ip = f"http://{server_ip}:5000"  # Asumsi Flask berjalan di port 5000
+    flask_url = "/validate_key"
+
+    # Tampilkan informasi IP dan URL API Flask
+    st.write(f"IP Flask saat ini: {flask_ip}")
+    st.write(f"URL API saat ini: {flask_ip}{flask_url}")
+
+    # Coba mengirim permintaan ke API Flask dan tampilkan responsnya
+    url = f"{flask_ip}{flask_url}"
+    try:
+        response = requests.post(url, json={"key": "admin"})
+        if response.status_code == 200:
+            st.success("Sukses: Server Flask merespon dengan status 200")
+            st.write(response.json())  # Menampilkan respons dari API
+        else:
+            st.error(f"Gagal: Server Flask merespon dengan status {response.status_code}")
+            st.write(response.json())  # Menampilkan pesan error dari API
+    except requests.exceptions.RequestException as e:
+        st.error(f"Gagal menghubungi API Flask: {str(e)}")
+
 
 # Fungsi logout
 def logout():
@@ -136,6 +179,8 @@ def display_active_keys():
 # Flask API untuk validasi key
 app = Flask(__name__)
 CORS(app)
+
+
 @app.route("/validate_key", methods=["POST"])
 def validate_key():
     data = request.json
@@ -154,8 +199,13 @@ def validate_key():
     return jsonify({"success": False, "message": "Key tidak valid"}), 404
 
 def run_flask():
-    print("Flask API berjalan di http://35.201.127.49:5000")
+    print("Flask API berjalan di http://:5000")
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
     CORS(app, origins=["https://lisensikey-guenihbos.streamlit.app"])
+    app.run(host='0.0.0.0', port=5000)
+    
+
 
 # Main function
 def main():
