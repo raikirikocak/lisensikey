@@ -2,4 +2,4 @@ streamlit
 flask
 uvicorn
 Flask-CORS
-
+pyngrok
