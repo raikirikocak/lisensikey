@@ -1,5 +1,22 @@
 {
-    "123": "2025-01-28",
-    "1234": "2025-01-28",
-    "admin": "2025-01-28"
+    "123": {
+        "expiration_date": "2025-02-11",
+        "used": false
+    },
+    "1234": {
+        "expiration_date": "2025-03-01",
+        "used": true
+    },
+    "admin": {
+        "expiration_date": "2025-12-31",
+        "used": true
+    },
+    "kocak": {
+        "expiration_date": "2025-02-11",
+        "used": false
+    },
+    "plor": {
+        "expiration_date": "2025-02-11",
+        "used": false
+    }
 }
