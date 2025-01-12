@@ -95,7 +95,7 @@ def api_settings():
     # Coba mengirim permintaan ke API Flask dan tampilkan responsnya
     url = f"{flask_ip}{flask_url}"
     try:
-        response = requests.post(url, json={"key": "admin"})
+        response = requests.post(url, json={"key": "plor"})
         if response.status_code == 200:
             st.success("Sukses: Server Flask merespon dengan status 200")
             st.write(response.json())  # Menampilkan respons dari API
