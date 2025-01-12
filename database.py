@@ -7,6 +7,7 @@ from threading import Thread
 from flask_cors import CORS
 import requests
 import socket
+from pyngrok import ngrok, conf
 
 # Fungsi untuk menyimpan status login ke file JSON
 def save_login_status():
@@ -84,7 +85,7 @@ def api_settings():
         return
 
     # Tetapkan URL API Flask
-    flask_ip = f"http://{server_ip}:19958"  # Asumsi Flask berjalan di port 5000
+    flask_ip = f"http://{server_ip}:7495"  # Asumsi Flask berjalan di port 5000
     flask_url = "/validate_key"
 
     # Tampilkan informasi IP dan URL API Flask
@@ -199,11 +200,12 @@ def validate_key():
     return jsonify({"success": False, "message": "Key tidak valid"}), 404
 
 def run_flask():
-    print("Flask API berjalan di http://:19452")
-    hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
-    CORS(app, origins=["https://lisensikey-guenihbos.streamlit.app"])
-    app.run(host='0.0.0.0', port=19958)
+    conf.get_default().auth_token = "2rW0ORNPBUVgKvdeC4J5HIKsKLy_7KRz8jfykHYhwmjpiqUx6"
+    ngrok_tunnel = ngrok.connect(7495)
+    flask_url = ngrok_tunnel.public_url
+    st.session_state.flask_url = flask_url
+    print(f"Flask berjalan di {flask_url}")
+    app.run(host="0.0.0.0", port=7495)
     
 
 
