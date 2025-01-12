@@ -36,7 +36,7 @@ def login_page():
     password = st.text_input('Password', type='password')
 
     if st.button('Login'):
-        if username == 'admin' and password == '1234':
+        if username == 'adminkocak' and password == 'Mapapa21':
             # Set session state jika login berhasil
             st.session_state.logged_in = True
             st.session_state.username = username
@@ -117,19 +117,29 @@ def logout():
     st.query_params['page'] = 'login'  # Mengubah query params untuk mengarahkan kembali ke login
 
 
-# Fungsi untuk membaca dan memperbarui file keys.json
 def load_keys():
     try:
         with open("keys.json", "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
+            keys_data = json.load(f)
+            
+            # Periksa apakah keys_data adalah dictionary yang valid
+            if isinstance(keys_data, dict):
+                return keys_data
+            else:
+                raise ValueError("Data dalam keys.json tidak valid, harus berupa dictionary.")
+    
+    except (FileNotFoundError, ValueError) as e:
+        st.error(f"Error memuat data keys.json: {e}")
         return {}
+    except json.JSONDecodeError:
+        st.error("Error: Format JSON dalam keys.json tidak valid.")
+        return {}
+
 
 def save_keys(keys_data):
     with open("keys.json", "w") as f:
         json.dump(keys_data, f, indent=4)
 
-# Fungsi untuk membuat key baru
 def create_key():
     st.subheader("Buat Key Baru")
     new_key = st.text_input("Masukkan Key Baru:")
@@ -137,13 +147,19 @@ def create_key():
 
     if st.button("Buat Key"):
         if new_key:
-            expiration_date = (datetime.now() + timedelta(days=expiration_days)).strftime("%Y-%m-%d")
+            # Cek apakah key sudah ada
             keys_data = load_keys()
-            keys_data[new_key] = expiration_date
-            save_keys(keys_data)
-            st.success(f'Key "{new_key}" berhasil dibuat! Masa berlaku sampai {expiration_date}')
+            if new_key in keys_data:
+                st.error(f"Key '{new_key}' sudah ada!")
+            else:
+                # Menyimpan key baru dengan status used = False
+                expiration_date = (datetime.now() + timedelta(days=expiration_days)).strftime("%Y-%m-%d")
+                keys_data[new_key] = {"expiration_date": expiration_date, "used": False}
+                save_keys(keys_data)
+                st.success(f'Key "{new_key}" berhasil dibuat! Masa berlaku sampai {expiration_date}')
         else:
             st.error("Harap masukkan key yang valid.")
+
 
 # Fungsi untuk menghapus key
 def delete_key():
@@ -163,17 +179,37 @@ def delete_key():
         else:
             st.error("Tidak ada key yang dipilih.")
 
-# Fungsi untuk menampilkan daftar key yang aktif
 def display_active_keys():
     st.subheader("Daftar Key yang Aktif")
     keys_data = load_keys()
+
     if keys_data:
-        for key, expiration_date in keys_data.items():
-            expiration_date_obj = datetime.strptime(expiration_date, "%Y-%m-%d")
-            if expiration_date_obj >= datetime.now():
-                st.write(f'Key: `{key}`, Berlaku hingga: {expiration_date}')
+        for key, data in keys_data.items():
+            # Cek jika expiration_date dan used ada dalam data
+            if "expiration_date" in data and "used" in data:
+                try:
+                    expiration_date_obj = datetime.strptime(data["expiration_date"], "%Y-%m-%d")
+                    key_status = "Sudah Digunakan" if data["used"] else "Tersedia untuk Pengguna Baru"
+                    
+                    # Jika key belum kedaluwarsa, tampilkan key beserta statusnya
+                    if expiration_date_obj >= datetime.now():
+                        # Lampu hijau jika key sudah digunakan
+                        if data["used"]:
+                            status_color = 'green'
+                            status_icon = '✅'  # Lampu hijau
+                        else:
+                            status_color = 'yellow'
+                            status_icon = '🟡'  # Lampu kuning jika key belum digunakan
+
+                        st.markdown(f'<div style="color:{status_color}; font-size:20px;">{status_icon} Key: `{key}`, Berlaku hingga: {data["expiration_date"]}</div>', unsafe_allow_html=True)
+                    else:
+                        # Jika key sudah expired
+                        st.write(f'Key: `{key}` (Expired) - {data["expiration_date"]}')
+                
+                except ValueError:
+                    st.error(f"Format tanggal untuk key `{key}` tidak valid.")
             else:
-                st.write(f'Key: `{key}` (Expired) - {expiration_date}')
+                st.error(f"Data untuk key `{key}` tidak lengkap.")
     else:
         st.write("Tidak ada key yang tersimpan.")
 
@@ -192,12 +228,22 @@ def validate_key():
 
     keys_data = load_keys()
     if input_key in keys_data:
-        expiration_date = datetime.strptime(keys_data[input_key], "%Y-%m-%d")
+        expiration_date = datetime.strptime(keys_data[input_key]["expiration_date"], "%Y-%m-%d")
+        
+        if keys_data[input_key]["used"]:
+            return jsonify({"success": False, "message": "Key sudah digunakan dan tidak dapat digunakan lagi"}), 403
+        
         if expiration_date >= datetime.now():
-            return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {keys_data[input_key]}"}), 200
+            # Set key sebagai "used" setelah validasi berhasil
+            keys_data[input_key]["used"] = True
+            save_keys(keys_data)
+            return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {keys_data[input_key]['expiration_date']}"}), 200
         else:
             return jsonify({"success": False, "message": "Key telah kedaluwarsa"}), 403
+
     return jsonify({"success": False, "message": "Key tidak valid"}), 404
+
+
 
 def run_flask():
     conf.get_default().auth_token = "2rW0ORNPBUVgKvdeC4J5HIKsKLy_7KRz8jfykHYhwmjpiqUx6"
@@ -206,8 +252,6 @@ def run_flask():
     st.session_state.flask_url = flask_url
     print(f"Flask berjalan di {flask_url}")
     app.run(host="0.0.0.0", port=7495)
-    
-
 
 # Main function
 def main():
