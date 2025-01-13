@@ -1,22 +1,17 @@
 {
-    "123": {
+    "key1": {
         "expiration_date": "2025-02-11",
-        "used": false
+        "used": false,
+        "user": "user1"
     },
-    "1234": {
+    "key2": {
         "expiration_date": "2025-03-01",
-        "used": true
+        "used": false,
+        "user": "user2"
     },
-    "admin": {
-        "expiration_date": "2025-12-31",
-        "used": true
-    },
-    "kocak": {
-        "expiration_date": "2025-02-11",
-        "used": false
-    },
-    "plor": {
-        "expiration_date": "2025-02-11",
-        "used": false
+    "bonsay": {
+        "expiration_date": "2025-02-12",
+        "used": false,
+        "user": "alkocak"
     }
 }
