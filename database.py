@@ -143,22 +143,24 @@ def save_keys(keys_data):
 def create_key():
     st.subheader("Buat Key Baru")
     new_key = st.text_input("Masukkan Key Baru:")
+    username = st.text_input("Masukkan Nama Pengguna:")
     expiration_days = st.number_input("Masa berlaku key (dalam hari):", min_value=1, value=30)
 
     if st.button("Buat Key"):
-        if new_key:
+        if new_key and username:
             # Cek apakah key sudah ada
             keys_data = load_keys()
             if new_key in keys_data:
                 st.error(f"Key '{new_key}' sudah ada!")
             else:
-                # Menyimpan key baru dengan status used = False
+                # Menyimpan key baru dengan atribut user dan used
                 expiration_date = (datetime.now() + timedelta(days=expiration_days)).strftime("%Y-%m-%d")
-                keys_data[new_key] = {"expiration_date": expiration_date, "used": False}
+                keys_data[new_key] = {"expiration_date": expiration_date, "used": False, "user": username}
                 save_keys(keys_data)
-                st.success(f'Key "{new_key}" berhasil dibuat! Masa berlaku sampai {expiration_date}')
+                st.success(f'Key "{new_key}" untuk pengguna "{username}" berhasil dibuat! Masa berlaku sampai {expiration_date}')
         else:
-            st.error("Harap masukkan key yang valid.")
+            st.error("Harap masukkan key dan nama pengguna yang valid.")
+
 
 
 # Fungsi untuk menghapus key
@@ -185,12 +187,13 @@ def display_active_keys():
 
     if keys_data:
         for key, data in keys_data.items():
-            # Cek jika expiration_date dan used ada dalam data
-            if "expiration_date" in data and "used" in data:
+            # Cek jika expiration_date, used, dan user ada dalam data
+            if "expiration_date" in data and "used" in data and "user" in data:
                 try:
                     expiration_date_obj = datetime.strptime(data["expiration_date"], "%Y-%m-%d")
                     key_status = "Sudah Digunakan" if data["used"] else "Tersedia untuk Pengguna Baru"
-                    
+                    user_name = data["user"]  # Ambil nama pengguna
+
                     # Jika key belum kedaluwarsa, tampilkan key beserta statusnya
                     if expiration_date_obj >= datetime.now():
                         # Lampu hijau jika key sudah digunakan
@@ -201,15 +204,20 @@ def display_active_keys():
                             status_color = 'yellow'
                             status_icon = '🟡'  # Lampu kuning jika key belum digunakan
 
-                        st.markdown(f'<div style="color:{status_color}; font-size:20px;">{status_icon} Key: `{key}`, Berlaku hingga: {data["expiration_date"]}</div>', unsafe_allow_html=True)
+                        st.markdown(
+                            f'<div style="color:{status_color}; font-size:20px;">'
+                            f'{status_icon} Key: `{key}`, Berlaku hingga: {data["expiration_date"]}, '
+                            f'Pengguna: `{user_name}`</div>',
+                            unsafe_allow_html=True
+                        )
                     else:
                         # Jika key sudah expired
-                        st.write(f'Key: `{key}` (Expired) - {data["expiration_date"]}')
+                        st.write(f'Key: `{key}` (Expired) - {data["expiration_date"]}, Pengguna: `{user_name}`')
                 
                 except ValueError:
                     st.error(f"Format tanggal untuk key `{key}` tidak valid.")
             else:
-                st.error(f"Data untuk key `{key}` tidak lengkap.")
+                st.error(f"Data untuk key `{key}` tidak lengkap atau tidak memiliki informasi pengguna.")
     else:
         st.write("Tidak ada key yang tersimpan.")
 
@@ -222,22 +230,23 @@ CORS(app)
 def validate_key():
     data = request.json
     input_key = data.get("key")
+    input_username = data.get("username")
 
-    if not input_key:
-        return jsonify({"success": False, "message": "Key tidak ditemukan dalam request"}), 400
+    if not input_key or not input_username:
+        return jsonify({"success": False, "message": "Key atau nama pengguna tidak ditemukan dalam request"}), 400
 
     keys_data = load_keys()
     if input_key in keys_data:
-        expiration_date = datetime.strptime(keys_data[input_key]["expiration_date"], "%Y-%m-%d")
-        
-        if keys_data[input_key]["used"]:
-            return jsonify({"success": False, "message": "Key sudah digunakan dan tidak dapat digunakan lagi"}), 403
-        
+        key_data = keys_data[input_key]
+        expiration_date = datetime.strptime(key_data["expiration_date"], "%Y-%m-%d")
+
+        # Periksa apakah nama pengguna cocok
+        if key_data["user"] != input_username:
+            return jsonify({"success": False, "message": "Key ini tidak terdaftar untuk nama pengguna tersebut"}), 403
+
+        # Periksa apakah key masih berlaku
         if expiration_date >= datetime.now():
-            # Set key sebagai "used" setelah validasi berhasil
-            keys_data[input_key]["used"] = True
-            save_keys(keys_data)
-            return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {keys_data[input_key]['expiration_date']}"}), 200
+            return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {key_data['expiration_date']}"}), 200
         else:
             return jsonify({"success": False, "message": "Key telah kedaluwarsa"}), 403
 
