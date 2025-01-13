@@ -237,30 +237,32 @@ CORS(app)
 def validate_key():
     data = request.json
     input_key = data.get("key")
-    input_user = data.get("user")
+    input_user = data.get("user")  # Pastikan ini sesuai dengan nama parameter di request
 
+    # Pastikan key dan user ada dalam request
     if not input_key or not input_user:
-        return jsonify({"success": False, "message": "Key atau user tidak ditemukan dalam request"}), 400
+        return jsonify({"success": False, "message": "Key atau nama pengguna tidak ditemukan dalam request"}), 400
 
+    # Load data keys
     keys_data = load_keys()
+    
+    # Periksa apakah key ada dalam data
     if input_key in keys_data:
-        expiration_date = datetime.strptime(keys_data[input_key]["expiration_date"], "%Y-%m-%d")
-        
-        if keys_data[input_key]["used"]:
-            if keys_data[input_key]["user"] == input_user:
-                return jsonify({"success": True, "message": "Key valid dan sudah digunakan oleh user yang sesuai"}), 200
-            return jsonify({"success": False, "message": "Key sudah digunakan oleh user lain"}), 403
-        
+        key_data = keys_data[input_key]
+        expiration_date = datetime.strptime(key_data["expiration_date"], "%Y-%m-%d")
+
+        # Periksa apakah nama pengguna cocok
+        if key_data["user"] != input_user:
+            return jsonify({"success": False, "message": "Key ini tidak terdaftar untuk nama pengguna tersebut"}), 403
+
+        # Periksa apakah key masih berlaku
         if expiration_date >= datetime.now():
-            # Tetapkan key ke user setelah validasi berhasil
-            keys_data[input_key]["used"] = True
-            keys_data[input_key]["user"] = input_user
-            save_keys(keys_data)
-            return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {keys_data[input_key]['expiration_date']}"}), 200
+            return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {key_data['expiration_date']}"}), 200
         else:
             return jsonify({"success": False, "message": "Key telah kedaluwarsa"}), 403
 
     return jsonify({"success": False, "message": "Key tidak valid"}), 404
+
 
 
 def run_flask():
