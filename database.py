@@ -85,25 +85,32 @@ def api_settings():
         return
 
     # Tetapkan URL API Flask
-    flask_ip = f"http://{server_ip}:7495"  # Asumsi Flask berjalan di port 5000
+    flask_ip = f"http://{server_ip}:7495"  # Asumsi Flask berjalan di port 7495
     flask_url = "/validate_key"
 
     # Tampilkan informasi IP dan URL API Flask
     st.write(f"IP Flask saat ini: {flask_ip}")
     st.write(f"URL API saat ini: {flask_ip}{flask_url}")
 
-    # Coba mengirim permintaan ke API Flask dan tampilkan responsnya
-    url = f"{flask_ip}{flask_url}"
-    try:
-        response = requests.post(url, json={"key": "key1"})
-        if response.status_code == 200:
-            st.success("Sukses: Server Flask merespon dengan status 200")
-            st.write(response.json())  # Menampilkan respons dari API
-        else:
-            st.error(f"Gagal: Server Flask merespon dengan status {response.status_code}")
-            st.write(response.json())  # Menampilkan pesan error dari API
-    except requests.exceptions.RequestException as e:
-        st.error(f"Gagal menghubungi API Flask: {str(e)}")
+    # Input untuk user dan key
+    st.subheader("Validasi Key")
+    user = st.text_input("Masukkan Nama Pengguna (User)", value="user1")  # Input untuk user
+    key = st.text_input("Masukkan Key untuk Validasi", value="key1")  # Input untuk key
+
+    # Tombol validasi
+    if st.button("Validasi Key"):
+        # Kirim permintaan ke API Flask dengan user dan key
+        url = f"{flask_ip}{flask_url}"
+        try:
+            response = requests.post(url, json={"key": key, "user": user})
+            if response.status_code == 200:
+                st.success("Sukses: Server Flask merespon dengan status 200")
+                st.write(response.json())  # Menampilkan respons dari API
+            else:
+                st.error(f"Gagal: Server Flask merespon dengan status {response.status_code}")
+                st.write(response.json())  # Menampilkan pesan error dari API
+        except requests.exceptions.RequestException as e:
+            st.error(f"Gagal menghubungi API Flask: {str(e)}")
 
 
 # Fungsi logout
