@@ -2,16 +2,22 @@
     "key1": {
         "expiration_date": "2025-02-11",
         "used": false,
-        "user": "user1"
+        "user": "user1",
+        "is_active": false,
+        "last_active": "2025-01-14T12:00:00"
     },
     "key2": {
         "expiration_date": "2025-03-01",
         "used": false,
-        "user": "user2"
+        "user": "user2",
+        "is_active": false,
+        "last_active": "2025-01-14T12:00:00"
     },
     "bonsay": {
         "expiration_date": "2025-02-12",
         "used": false,
-        "user": "alkocak"
+        "user": "alkocak",
+        "is_active": false,
+        "last_active": "2025-01-14T12:00:00"
     }
 }
