@@ -237,45 +237,46 @@ CORS(app)
 
 @app.route("/validate_key", methods=["POST"])
 def validate_key():
-    data = request.json  # Mengambil data JSON
-    input_key = data.get("key")  # Mengambil nilai 'key' dari JSON
-    input_username = data.get("username")  # Mengambil nilai 'username' dari JSON
+    data = request.json
+    input_key = data.get("key")
+    input_username = data.get("username")
 
     if not input_key or not input_username:
         return jsonify({"success": False, "message": "Key atau nama pengguna tidak ditemukan dalam request"}), 400
 
-    # Periksa apakah key yang diminta ada dalam data
-    keys_data = load_keys()
-    if input_key in keys_data:
-        key_data = keys_data[input_key]
-        expiration_date = datetime.strptime(key_data["expiration_date"], "%Y-%m-%d")
+    # Memastikan JSON di file berisi key yang ada dalam request
+    keys_data = load_keys()  # Load keys dari file atau database
+    if input_key not in keys_data:
+        return jsonify({"success": False, "message": "Key tidak valid"}), 404
+    
+    key_data = keys_data[input_key]  # Ambil data berdasarkan key
+    expiration_date = datetime.strptime(key_data["expiration_date"], "%Y-%m-%d")
 
-        # Periksa apakah key telah expired
-        if expiration_date < datetime.now():
-            return jsonify({"success": False, "message": "Key telah kedaluwarsa"}), 403
+    # Periksa apakah key telah expired
+    if expiration_date < datetime.now():
+        return jsonify({"success": False, "message": "Key telah kedaluwarsa"}), 403
 
-        current_time = datetime.now()
+    current_time = datetime.now()
 
-        # Periksa aktivitas terakhir berdasarkan waktu terakhir request
-        last_active_str = key_data.get("last_active", None)
-        if last_active_str:
-            last_active = datetime.strptime(last_active_str, "%Y-%m-%dT%H:%M:%S")
-            if (current_time - last_active).total_seconds() > 10:
-                # Jika lebih dari 10 detik tanpa request baru, anggap key tidak aktif
-                key_data["is_active"] = False
+    # Periksa aktivitas terakhir berdasarkan waktu terakhir request (hanya jika ada request)
+    last_active_str = key_data.get("last_active", None)
+    if last_active_str:
+        last_active = datetime.strptime(last_active_str, "%Y-%m-%dT%H:%M:%S")
+        if (current_time - last_active).total_seconds() > 10:
+            # Jika lebih dari 10 detik tanpa request baru, anggap key tidak aktif
+            key_data["is_active"] = False
 
-        # Jika key sedang aktif dan digunakan oleh pengguna lain, tolak akses
-        if key_data.get("is_active", False) and key_data["user"] != input_username:
-            return jsonify({"success": False, "message": "Key ini sedang digunakan oleh pengguna lain"}), 403
+    # Jika key sedang aktif dan digunakan oleh pengguna lain, tolak akses
+    if key_data.get("is_active", False) and key_data["user"] != input_username:
+        return jsonify({"success": False, "message": "Key ini sedang digunakan oleh pengguna lain"}), 403
 
-        # Perbarui status key jika pengguna yang sama atau key tidak aktif
-        key_data["is_active"] = True
-        key_data["last_active"] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
-        save_keys(keys_data)
+    # Perbarui status key jika pengguna yang sama atau key tidak aktif
+    key_data["is_active"] = True
+    key_data["last_active"] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
+    save_keys(keys_data)
 
-        return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {key_data['expiration_date']}"}), 200
+    return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {key_data['expiration_date']}"}), 200
 
-    return jsonify({"success": False, "message": "Key tidak valid"}), 404
 
 
 
