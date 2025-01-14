@@ -85,32 +85,25 @@ def api_settings():
         return
 
     # Tetapkan URL API Flask
-    flask_ip = f"http://{server_ip}:7495"  # Asumsi Flask berjalan di port 7495
+    flask_ip = f"http://{server_ip}:7495"  # Asumsi Flask berjalan di port 5000
     flask_url = "/validate_key"
 
     # Tampilkan informasi IP dan URL API Flask
     st.write(f"IP Flask saat ini: {flask_ip}")
     st.write(f"URL API saat ini: {flask_ip}{flask_url}")
 
-    # Input untuk user dan key
-    st.subheader("Validasi Key")
-    user = st.text_input("Masukkan Nama Pengguna (User)", value="user1")  # Input untuk user
-    key = st.text_input("Masukkan Key untuk Validasi", value="key1")  # Input untuk key
-
-    # Tombol validasi
-    if st.button("Validasi Key"):
-        # Kirim permintaan ke API Flask dengan user dan key
-        url = f"{flask_ip}{flask_url}"
-        try:
-            response = requests.post(url, json={"key": key, "user": user})
-            if response.status_code == 200:
-                st.success("Sukses: Server Flask merespon dengan status 200")
-                st.write(response.json())  # Menampilkan respons dari API
-            else:
-                st.error(f"Gagal: Server Flask merespon dengan status {response.status_code}")
-                st.write(response.json())  # Menampilkan pesan error dari API
-        except requests.exceptions.RequestException as e:
-            st.error(f"Gagal menghubungi API Flask: {str(e)}")
+    # Coba mengirim permintaan ke API Flask dan tampilkan responsnya
+    url = f"{flask_ip}{flask_url}"
+    try:
+        response = requests.post(url, json={"key": "plor"})
+        if response.status_code == 200:
+            st.success("Sukses: Server Flask merespon dengan status 200")
+            st.write(response.json())  # Menampilkan respons dari API
+        else:
+            st.error(f"Gagal: Server Flask merespon dengan status {response.status_code}")
+            st.write(response.json())  # Menampilkan pesan error dari API
+    except requests.exceptions.RequestException as e:
+        st.error(f"Gagal menghubungi API Flask: {str(e)}")
 
 
 # Fungsi logout
@@ -194,39 +187,42 @@ def display_active_keys():
 
     if keys_data:
         for key, data in keys_data.items():
-            # Cek jika expiration_date, used, dan user ada dalam data
-            if "expiration_date" in data and "used" in data and "user" in data:
+            if "expiration_date" in data and "last_active" in data and "user" in data:
                 try:
                     expiration_date_obj = datetime.strptime(data["expiration_date"], "%Y-%m-%d")
-                    key_status = "Sudah Digunakan" if data["used"] else "Tersedia untuk Pengguna Baru"
-                    user_name = data["user"]  # Ambil nama pengguna
+                    last_active_obj = datetime.strptime(data["last_active"], "%Y-%m-%dT%H:%M:%S")
+                    current_time = datetime.now()
 
-                    # Jika key belum kedaluwarsa, tampilkan key beserta statusnya
-                    if expiration_date_obj >= datetime.now():
-                        # Lampu hijau jika key sudah digunakan
-                        if data["used"]:
-                            status_color = 'green'
-                            status_icon = '✅'  # Lampu hijau
+                    # Tentukan status berdasarkan waktu aktivitas terakhir dan tanggal kedaluwarsa
+                    if expiration_date_obj >= current_time:
+                        if data.get("is_active", False):
+                            # Jika key aktif, pengguna sedang online
+                            status_icon = "🟢"  # Lampu hijau
                         else:
-                            status_color = 'yellow'
-                            status_icon = '🟡'  # Lampu kuning jika key belum digunakan
-
-                        st.markdown(
-                            f'<div style="color:{status_color}; font-size:20px;">'
-                            f'{status_icon} Key: `{key}`, Berlaku hingga: {data["expiration_date"]}, '
-                            f'Pengguna: `{user_name}`</div>',
-                            unsafe_allow_html=True
-                        )
+                            # Jika key tidak aktif, pengguna offline
+                            status_icon = "🔴"  # Lampu merah
                     else:
-                        # Jika key sudah expired
-                        st.write(f'Key: `{key}` (Expired) - {data["expiration_date"]}, Pengguna: `{user_name}`')
-                
+                        # Key sudah expired
+                        status_icon = "❌"  # X merah
+
+                    # Tampilkan informasi key dengan statusnya
+                    st.markdown(
+                        f'<div style="font-size:20px;">'
+                        f'{status_icon} Key: `{key}`, Berlaku hingga: {data["expiration_date"]}, '
+                        f'Pengguna: `{data["user"]}`</div>',
+                        unsafe_allow_html=True
+                    )
+
                 except ValueError:
                     st.error(f"Format tanggal untuk key `{key}` tidak valid.")
             else:
                 st.error(f"Data untuk key `{key}` tidak lengkap atau tidak memiliki informasi pengguna.")
     else:
         st.write("Tidak ada key yang tersimpan.")
+
+
+
+
 
 # Flask API untuk validasi key
 app = Flask(__name__)
@@ -237,31 +233,44 @@ CORS(app)
 def validate_key():
     data = request.json
     input_key = data.get("key")
-    input_user = data.get("user")  # Pastikan ini sesuai dengan nama parameter di request
+    input_username = data.get("username")
 
-    # Pastikan key dan user ada dalam request
-    if not input_key or not input_user:
+    if not input_key or not input_username:
         return jsonify({"success": False, "message": "Key atau nama pengguna tidak ditemukan dalam request"}), 400
 
-    # Load data keys
     keys_data = load_keys()
-    
-    # Periksa apakah key ada dalam data
     if input_key in keys_data:
         key_data = keys_data[input_key]
         expiration_date = datetime.strptime(key_data["expiration_date"], "%Y-%m-%d")
 
-        # Periksa apakah nama pengguna cocok
-        if key_data["user"] != input_user:
-            return jsonify({"success": False, "message": "Key ini tidak terdaftar untuk nama pengguna tersebut"}), 403
-
-        # Periksa apakah key masih berlaku
-        if expiration_date >= datetime.now():
-            return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {key_data['expiration_date']}"}), 200
-        else:
+        # Periksa apakah key telah expired
+        if expiration_date < datetime.now():
             return jsonify({"success": False, "message": "Key telah kedaluwarsa"}), 403
 
+        current_time = datetime.now()
+
+        # Periksa aktivitas terakhir berdasarkan waktu terakhir request (hanya jika ada request)
+        last_active_str = key_data.get("last_active", None)
+        if last_active_str:
+            last_active = datetime.strptime(last_active_str, "%Y-%m-%dT%H:%M:%S")
+            if (current_time - last_active).total_seconds() > 10:
+                # Jika lebih dari 10 detik tanpa request baru, anggap key tidak aktif
+                key_data["is_active"] = False
+
+        # Jika key sedang aktif dan digunakan oleh pengguna lain, tolak akses
+        if key_data.get("is_active", False) and key_data["user"] != input_username:
+            return jsonify({"success": False, "message": "Key ini sedang digunakan oleh pengguna lain"}), 403
+
+        # Perbarui status key jika pengguna yang sama atau key tidak aktif
+        key_data["is_active"] = True
+        key_data["last_active"] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
+        save_keys(keys_data)
+
+        return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {key_data['expiration_date']}"}), 200
+
     return jsonify({"success": False, "message": "Key tidak valid"}), 404
+
+
 
 
 
