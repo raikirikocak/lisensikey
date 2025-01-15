@@ -147,6 +147,7 @@ def save_keys(keys_data):
     with open("keys.json", "w") as f:
         json.dump(keys_data, f, indent=4)
 
+# Fungsi untuk membuat key baru
 def create_key():
     st.subheader("Buat Key Baru")
     new_key = st.text_input("Masukkan Key Baru:")
@@ -155,19 +156,28 @@ def create_key():
 
     if st.button("Buat Key"):
         if new_key and username:
-            # Cek apakah key sudah ada
+            # Muat data key yang ada
             keys_data = load_keys()
+
+            # Cek apakah key sudah ada
             if new_key in keys_data:
                 st.error(f"Key '{new_key}' sudah ada!")
             else:
-                # Menyimpan key baru dengan atribut user dan used
+                # Menentukan tanggal kedaluwarsa
                 expiration_date = (datetime.now() + timedelta(days=expiration_days)).strftime("%Y-%m-%d")
-                keys_data[new_key] = {"expiration_date": expiration_date, "used": False, "user": username}
+                # Menyimpan key baru dengan atribut tambahan
+                keys_data[new_key] = {
+                    "expiration_date": expiration_date,
+                    "used": False,
+                    "user": username,
+                    "is_active": False,
+                    "last_active": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                }
+                # Simpan ke file
                 save_keys(keys_data)
                 st.success(f'Key "{new_key}" untuk pengguna "{username}" berhasil dibuat! Masa berlaku sampai {expiration_date}')
         else:
             st.error("Harap masukkan key dan nama pengguna yang valid.")
-
 
 
 # Fungsi untuk menghapus key
