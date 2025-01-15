@@ -202,15 +202,22 @@ def display_active_keys():
 
                     # Tentukan status berdasarkan waktu aktivitas terakhir dan tanggal kedaluwarsa
                     if expiration_date_obj >= current_time:
-                        if data.get("is_active", False):
-                            # Jika key aktif, pengguna sedang online
-                            status_icon = "🟢"  # Lampu hijau
+                        # Periksa apakah sudah lebih dari 10 detik sejak aktivitas terakhir
+                        if (current_time - last_active_obj).total_seconds() > 10:
+                            # Jika lebih dari 10 detik tanpa aktivitas, anggap key tidak aktif
+                            data["is_active"] = False
                         else:
-                            # Jika key tidak aktif, pengguna offline
-                            status_icon = "🔴"  # Lampu merah
+                            # Jika ada aktivitas dalam 10 detik terakhir, key tetap aktif
+                            data["is_active"] = True
                     else:
                         # Key sudah expired
-                        status_icon = "❌"  # X merah
+                        data["is_active"] = False
+
+                    # Tentukan status icon berdasarkan status is_active
+                    if data.get("is_active", False):
+                        status_icon = "🟢"  # Lampu hijau
+                    else:
+                        status_icon = "🔴"  # Lampu merah
 
                     # Tampilkan informasi key dengan statusnya
                     st.markdown(
@@ -224,12 +231,11 @@ def display_active_keys():
                     st.error(f"Format tanggal untuk key `{key}` tidak valid.")
             else:
                 st.error(f"Data untuk key `{key}` tidak lengkap atau tidak memiliki informasi pengguna.")
+        
+        # Simpan perubahan status ke file jika ada pembaruan
+        save_keys(keys_data)
     else:
         st.write("Tidak ada key yang tersimpan.")
-
-
-
-
 
 # Flask API untuk validasi key
 app = Flask(__name__)
