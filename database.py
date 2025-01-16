@@ -230,10 +230,13 @@ def display_active_keys():
                         status_icon = "❌"  # Ikon silang merah
 
                     # Tampilkan informasi key dengan statusnya
-                    st.markdown(
-                        f'<div style="font-size:20px;">'
-                        f'{status_icon} Key: `{key}`, Status: {status_message}, '
-                        f'Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}`</div>',
+                   st.markdown(
+                        f"""
+                        <div style="font-size:15px; color:#CAF4FF;">
+                            {status_icon} Key: `{key}`, Status: {status_message}, 
+                            Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}`
+                        </div>
+                        """,
                         unsafe_allow_html=True
                     )
 
