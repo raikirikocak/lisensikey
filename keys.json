@@ -19,5 +19,12 @@
         "user": "alkocak",
         "is_active": false,
         "last_active": "2025-01-14T12:00:00"
+    },
+    "bonsayu": {
+        "expiration_date": "2025-01-15",
+        "used": false,
+        "user": "alkocaku",
+        "is_active": false,
+        "last_active": "2025-01-14T12:00:00"
     }
 }
