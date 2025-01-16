@@ -230,7 +230,7 @@ def display_active_keys():
                         status_icon = "❌"  # Ikon silang merah
 
                     # Tampilkan informasi key dengan statusnya
-                   st.markdown(
+                    st.markdown(
                         f"""
                         <div style="font-size:15px; color:#CAF4FF;">
                             {status_icon} Key: `{key}`, Status: {status_message}, 
