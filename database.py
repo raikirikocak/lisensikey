@@ -199,7 +199,7 @@ def delete_key():
             st.error("Tidak ada key yang dipilih.")
 
 def display_active_keys():
-    st.subheader("Daftar Key yang Aktif")
+    st.subheader("Daftar Key yang Aktif atau Tidak Valid")
     keys_data = load_keys()
 
     if keys_data:
@@ -216,24 +216,24 @@ def display_active_keys():
                         if (current_time - last_active_obj).total_seconds() > 10:
                             # Jika lebih dari 10 detik tanpa aktivitas, anggap key tidak aktif
                             data["is_active"] = False
+                            status_message = "Tidak Aktif"
+                            status_icon = "🔴"  # Lampu merah
                         else:
                             # Jika ada aktivitas dalam 10 detik terakhir, key tetap aktif
                             data["is_active"] = True
+                            status_message = "Aktif"
+                            status_icon = "🟢"  # Lampu hijau
                     else:
                         # Key sudah expired
                         data["is_active"] = False
-
-                    # Tentukan status icon berdasarkan status is_active
-                    if data.get("is_active", False):
-                        status_icon = "🟢"  # Lampu hijau
-                    else:
-                        status_icon = "🔴"  # Lampu merah
+                        status_message = "Kedaluwarsa"
+                        status_icon = "❌"  # Ikon silang merah
 
                     # Tampilkan informasi key dengan statusnya
                     st.markdown(
                         f'<div style="font-size:20px;">'
-                        f'{status_icon} Key: `{key}`, Berlaku hingga: {data["expiration_date"]}, '
-                        f'Pengguna: `{data["user"]}`</div>',
+                        f'{status_icon} Key: `{key}`, Status: {status_message}, '
+                        f'Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}`</div>',
                         unsafe_allow_html=True
                     )
 
@@ -246,6 +246,7 @@ def display_active_keys():
         save_keys(keys_data)
     else:
         st.write("Tidak ada key yang tersimpan.")
+
 
 # Flask API untuk validasi key
 app = Flask(__name__)
