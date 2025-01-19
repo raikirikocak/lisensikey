@@ -199,10 +199,27 @@ def delete_key():
         else:
             st.error("Tidak ada key yang dipilih.")
 
+# Ganti dengan URL ngrok Anda
+ngrok_url = "https://e9cd-35-197-92-111.ngrok-free.app"  # Ganti dengan URL ngrok yang aktif
+
+# Hubungkan ke server SocketIO
+sio = socketio.Client()
+
+# Variabel untuk menyimpan data key
+keys_data = []
+
+# Fungsi untuk menerima data dari server
+@sio.on("active_keys")
+def handle_active_keys(data):
+    global keys_data
+    keys_data = data
+    st.experimental_rerun()  # Merender ulang aplikasi setiap kali data diperbarui
+
+# Hubungkan ke server menggunakan URL ngrok
+sio.connect(ngrok_url)
+
 def display_active_keys():
     st.subheader("Daftar Key yang Aktif atau Tidak Valid")
-    keys_data = load_keys()
-
     if keys_data:
         for key, data in keys_data.items():
             if "expiration_date" in data and "last_active" in data and "user" in data:
@@ -213,19 +230,15 @@ def display_active_keys():
 
                     # Tentukan status berdasarkan waktu aktivitas terakhir dan tanggal kedaluwarsa
                     if expiration_date_obj >= current_time:
-                        # Periksa apakah sudah lebih dari 10 detik sejak aktivitas terakhir
-                        if (current_time - last_active_obj).total_seconds() > 10:
-                            # Jika lebih dari 10 detik tanpa aktivitas, anggap key tidak aktif
-                            data["is_active"] = False
-                            status_message = "Tidak Aktif"
-                            status_icon = "🔴"  # Lampu merah
-                        else:
-                            # Jika ada aktivitas dalam 10 detik terakhir, key tetap aktif
+                        if (current_time - last_active_obj).total_seconds() <= 10:
                             data["is_active"] = True
                             status_message = "Aktif"
                             status_icon = "🟢"  # Lampu hijau
+                        else:
+                            data["is_active"] = False
+                            status_message = "Tidak Aktif"
+                            status_icon = "🔴"  # Lampu merah
                     else:
-                        # Key sudah expired
                         data["is_active"] = False
                         status_message = "Kedaluwarsa"
                         status_icon = "❌"  # Ikon silang merah
@@ -245,14 +258,11 @@ def display_active_keys():
                     st.error(f"Format tanggal untuk key `{key}` tidak valid.")
             else:
                 st.error(f"Data untuk key `{key}` tidak lengkap atau tidak memiliki informasi pengguna.")
-        
-        # Simpan perubahan status ke file jika ada pembaruan
-        save_keys(keys_data)
-        # Memaksa aplikasi Streamlit untuk merender ulang (real-time)
-        st.experimental_rerun()
-
     else:
         st.write("Tidak ada key yang tersimpan.")
+
+# Menampilkan active keys setiap kali data diterima
+display_active_keys()
 
 # Flask API untuk validasi key
 app = Flask(__name__)
