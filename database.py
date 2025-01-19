@@ -256,49 +256,50 @@ if ngrok_url:
     # Hubungkan ke server menggunakan URL ngrok yang sudah didapatkan
     sio.connect(ngrok_url)
 
-    # Menampilkan daftar key aktif dan statusnya
-    def display_active_keys():
-        st.subheader("Daftar Key yang Aktif atau Tidak Valid")
-        if keys_data:
-            for key, data in keys_data.items():
-                if "expiration_date" in data and "last_active" in data and "user" in data:
-                    try:
-                        expiration_date_obj = datetime.strptime(data["expiration_date"], "%Y-%m-%d")
-                        last_active_obj = datetime.strptime(data["last_active"], "%Y-%m-%dT%H:%M:%S")
-                        current_time = datetime.now()
+   def display_active_keys():
+    # Pastikan kode ini ada dan tidak salah penulisan
+    st.subheader("Daftar Key yang Aktif atau Tidak Valid")
+    if keys_data:
+        for key, data in keys_data.items():
+            if "expiration_date" in data and "last_active" in data and "user" in data:
+                try:
+                    expiration_date_obj = datetime.strptime(data["expiration_date"], "%Y-%m-%d")
+                    last_active_obj = datetime.strptime(data["last_active"], "%Y-%m-%dT%H:%M:%S")
+                    current_time = datetime.now()
 
-                        # Tentukan status berdasarkan waktu aktivitas terakhir dan tanggal kedaluwarsa
-                        if expiration_date_obj >= current_time:
-                            if (current_time - last_active_obj).total_seconds() <= 10:
-                                data["is_active"] = True
-                                status_message = "Aktif"
-                                status_icon = "🟢"  # Lampu hijau
-                            else:
-                                data["is_active"] = False
-                                status_message = "Tidak Aktif"
-                                status_icon = "🔴"  # Lampu merah
+                    # Tentukan status berdasarkan waktu aktivitas terakhir dan tanggal kedaluwarsa
+                    if expiration_date_obj >= current_time:
+                        if (current_time - last_active_obj).total_seconds() <= 10:
+                            data["is_active"] = True
+                            status_message = "Aktif"
+                            status_icon = "🟢"  # Lampu hijau
                         else:
                             data["is_active"] = False
-                            status_message = "Kedaluwarsa"
-                            status_icon = "❌"  # Ikon silang merah
+                            status_message = "Tidak Aktif"
+                            status_icon = "🔴"  # Lampu merah
+                    else:
+                        data["is_active"] = False
+                        status_message = "Kedaluwarsa"
+                        status_icon = "❌"  # Ikon silang merah
 
-                        # Tampilkan informasi key dengan statusnya
-                        st.markdown(
-                            f"""
-                            <div style="font-size:15px; color:#CAF4FF;">
-                                {status_icon} Key: `{key}`, Status: {status_message}, 
-                                Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}`
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                    # Tampilkan informasi key dengan statusnya
+                    st.markdown(
+                        f"""
+                        <div style="font-size:15px; color:#CAF4FF;">
+                            {status_icon} Key: `{key}`, Status: {status_message}, 
+                            Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}`
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
-                    except ValueError:
-                        st.error(f"Format tanggal untuk key `{key}` tidak valid.")
-                else:
-                    st.error(f"Data untuk key `{key}` tidak lengkap atau tidak memiliki informasi pengguna.")
-        else:
-            st.write("Tidak ada key yang tersimpan.")
+                except ValueError:
+                    st.error(f"Format tanggal untuk key `{key}` tidak valid.")
+            else:
+                st.error(f"Data untuk key `{key}` tidak lengkap atau tidak memiliki informasi pengguna.")
+    else:
+        st.write("Tidak ada key yang tersimpan.")
+
 
     # Menampilkan status pengguna yang diterima dari server
     def display_user_status():
