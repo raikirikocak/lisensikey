@@ -61,7 +61,8 @@ def dashboard_page():
         "Buat Key Baru", 
         "Hapus Key", 
         "Lihat Key yang Aktif", 
-        "Pengaturan IP dan URL API Flask", 
+        "Pengaturan IP dan URL API Flask",
+        "user status"
         "logout"
     ])
 
@@ -73,6 +74,8 @@ def dashboard_page():
         display_active_keys()
     elif action == "Pengaturan IP dan URL API Flask":
         api_settings()
+    elif action == "display user status"
+        display_user_status()
     elif action == "logout":
             logout()  # Memanggil pengaturan IP dan URL API Flask
 
