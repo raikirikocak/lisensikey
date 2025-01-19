@@ -73,6 +73,7 @@ def dashboard_page():
         display_active_keys()
     elif action == "Pengaturan IP dan URL API Flask":
         api_settings()
+    
     elif action == "logout":
             logout()  # Memanggil pengaturan IP dan URL API Flask
 
@@ -200,64 +201,9 @@ def delete_key():
         else:
             st.error("Tidak ada key yang dipilih.")
 
-import streamlit as st
-import socketio
-from datetime import datetime
-
-# Ganti dengan token yang valid
-token = "2rW0ORNPBUVgKvdeC4J5HIKsKLy_7KRz8jfykHYhwmjpiqUx6"
-
-# Ganti dengan endpoint API ngrok untuk mendapatkan informasi tunnel
-ngrok_api_url = "https://api.ngrok.com/tunnels"
-
-# Set header untuk autentikasi menggunakan token
-headers = {
-    "Authorization": f"Bearer {token}",
-    "Content-Type": "application/json"
-}
-
-# Mengirim permintaan GET untuk mendapatkan informasi tunnel
-import requests
-
-response = requests.get(ngrok_api_url, headers=headers)
-
-# Mengecek apakah permintaan berhasil
-if response.status_code == 200:
-    # Mengambil data dari respon JSON
-    tunnels_data = response.json()
-    if tunnels_data.get("tunnels"):
-        # Mendapatkan URL ngrok yang aktif
-        ngrok_url = tunnels_data["tunnels"][0]["public_url"]
-    else:
-        st.write("Tidak ada tunnel yang aktif.")
-        ngrok_url = None
-else:
-    st.write(f"Gagal mendapatkan URL ngrok: {response.status_code} - {response.text}")
-    ngrok_url = None
-
-# Jika URL ngrok berhasil didapatkan
-if ngrok_url:
-    # Hubungkan ke server SocketIO
-    sio = socketio.Client()
-
-    # Variabel untuk menyimpan data key
-    keys_data = []
-
-    # Menyimpan status pengguna
-    user_status = {}
-
-    # Fungsi untuk menerima data status pengguna
-    @sio.on("user_status")
-    def handle_user_status(data):
-        global user_status
-        user_status = data
-        st.experimental_rerun()  # Merender ulang aplikasi setiap kali status diperbarui
-
-    # Hubungkan ke server menggunakan URL ngrok yang sudah didapatkan
-    sio.connect(ngrok_url)
-
 def display_active_keys():
-    # Pastikan kode ini ada dan tidak salah penulisan
+    keys_data = load_keys()  # Memuat data keys dari load_keys()
+
     st.subheader("Daftar Key yang Aktif atau Tidak Valid")
     if keys_data:
         for key, data in keys_data.items():
@@ -267,8 +213,13 @@ def display_active_keys():
                     last_active_obj = datetime.strptime(data["last_active"], "%Y-%m-%dT%H:%M:%S")
                     current_time = datetime.now()
 
-                    # Tentukan status berdasarkan waktu aktivitas terakhir dan tanggal kedaluwarsa
-                    if expiration_date_obj >= current_time:
+                    # Periksa apakah key sudah kedaluwarsa terlebih dahulu
+                    if expiration_date_obj < current_time:
+                        data["is_active"] = False
+                        status_message = "Kedaluwarsa"
+                        status_icon = "❌"  # Ikon silang merah untuk kedaluwarsa
+                    else:
+                        # Jika key masih berlaku, periksa aktivitas terakhir
                         if (current_time - last_active_obj).total_seconds() <= 10:
                             data["is_active"] = True
                             status_message = "Aktif"
@@ -277,10 +228,6 @@ def display_active_keys():
                             data["is_active"] = False
                             status_message = "Tidak Aktif"
                             status_icon = "🔴"  # Lampu merah
-                    else:
-                        data["is_active"] = False
-                        status_message = "Kedaluwarsa"
-                        status_icon = "❌"  # Ikon silang merah
 
                     # Tampilkan informasi key dengan statusnya
                     st.markdown(
@@ -300,28 +247,6 @@ def display_active_keys():
     else:
         st.write("Tidak ada key yang tersimpan.")
 
-
-    # Menampilkan status pengguna yang diterima dari server
-    def display_user_status():
-        if user_status:
-            status_message = user_status.get("status")
-            username = user_status.get("username")
-            icon = user_status.get("icon", "🔵")
-
-            st.markdown(
-                f"""
-                <div style="font-size:15px; color:#CAF4FF;">
-                    {icon} Pengguna: `{username}`, Status: {status_message}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        else:
-            st.write("Tidak ada status pengguna yang diterima.")
-
-    # Menampilkan active keys dan status pengguna
-    display_active_keys()
-    display_user_status()
 
 
 # Flask API untuk validasi key
