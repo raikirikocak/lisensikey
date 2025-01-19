@@ -248,6 +248,9 @@ def display_active_keys():
         
         # Simpan perubahan status ke file jika ada pembaruan
         save_keys(keys_data)
+        # Memaksa aplikasi Streamlit untuk merender ulang (real-time)
+        st.experimental_rerun()
+
     else:
         st.write("Tidak ada key yang tersimpan.")
 
