@@ -4,4 +4,4 @@ uvicorn
 Flask-CORS
 pyngrok
 flask-socketio
-
+socketio
