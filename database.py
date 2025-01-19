@@ -283,17 +283,16 @@ def validate_key(data):
 
             current_time = datetime.now()
 
-            # Periksa langsung aktivitas terakhir tanpa interval waktu
             last_active_str = key_data.get("last_active", None)
             if last_active_str:
                 last_active = datetime.strptime(last_active_str, "%Y-%m-%dT%H:%M:%S")
-                # Jika aktivitas terakhir ditemukan, perbarui status aktif.
+                # Jika aktivitas terakhir ditemukan, perbarui status aktif berdasarkan aktivitas Socket.IO
                 if (current_time - last_active).total_seconds() <= 10:
                     key_data["is_active"] = True
                 else:
                     key_data["is_active"] = False
 
-            # Perbarui aktivitas terbaru jika key valid
+            # Perbarui waktu aktivitas terbaru (berdasarkan waktu sekarang) jika key valid
             key_data["last_active"] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
             save_keys(keys_data)
 
@@ -301,6 +300,7 @@ def validate_key(data):
             return
 
         emit("validation_result", {"success": False, "message": "Key tidak valid"})
+
         
 # Event saat klien memutuskan koneksi
 @socketio.on("disconnect")
