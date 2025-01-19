@@ -9,6 +9,7 @@ import requests
 import socket
 from pyngrok import ngrok, conf
 from threading import Lock
+from flask_socketio import SocketIO, emit
 
 # Fungsi untuk menyimpan status login ke file JSON
 def save_login_status():
@@ -250,23 +251,27 @@ def display_active_keys():
     else:
         st.write("Tidak ada key yang tersimpan.")
 
-
 # Flask API untuk validasi key
 app = Flask(__name__)
 CORS(app)
 
-
+socketio = SocketIO(app)
 lock = Lock()
 
-@app.route("/validate_key", methods=["POST"])
-def validate_key():
-    with lock:  # Pastikan pembaruan aman dalam lingkungan multi-threaded
-        data = request.json
+# Event saat klien terhubung
+@socketio.on("connect")
+def handle_connect():
+    print("Client connected.")
+
+@socketio.on("validate_key")
+def validate_key(data):
+    with lock:
         input_key = data.get("key")
         input_username = data.get("username")
 
         if not input_key or not input_username:
-            return jsonify({"success": False, "message": "Key atau nama pengguna tidak ditemukan dalam request"}), 400
+            emit("validation_result", {"success": False, "message": "Key atau nama pengguna tidak ditemukan dalam request"})
+            return
 
         keys_data = load_keys()
         if input_key in keys_data:
@@ -275,30 +280,35 @@ def validate_key():
 
             # Periksa apakah key telah expired
             if expiration_date < datetime.now():
-                return jsonify({"success": False, "message": "Key telah kedaluwarsa"}), 403
+                emit("validation_result", {"success": False, "message": "Key telah kedaluwarsa"})
+                return
 
             current_time = datetime.now()
 
-            # Periksa aktivitas terakhir berdasarkan waktu terakhir request (hanya jika ada request)
+            # Periksa langsung aktivitas terakhir tanpa interval waktu
             last_active_str = key_data.get("last_active", None)
             if last_active_str:
                 last_active = datetime.strptime(last_active_str, "%Y-%m-%dT%H:%M:%S")
-                if (current_time - last_active).total_seconds() > 10:
-                    # Jika lebih dari 10 detik tanpa request baru, anggap key tidak aktif
+                # Jika aktivitas terakhir ditemukan, perbarui status aktif.
+                if (current_time - last_active).total_seconds() <= 10:
+                    key_data["is_active"] = True
+                else:
                     key_data["is_active"] = False
 
-            # Jika key sedang aktif dan digunakan oleh pengguna lain, tolak akses
-            if key_data.get("is_active", False) and key_data["user"] != input_username:
-                return jsonify({"success": False, "message": "Key ini sedang digunakan oleh pengguna lain"}), 403
-
-            # Perbarui status key jika pengguna yang sama atau key tidak aktif
-            key_data["is_active"] = True
+            # Perbarui aktivitas terbaru jika key valid
             key_data["last_active"] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
             save_keys(keys_data)
 
-            return jsonify({"success": True, "message": f"Key valid! Berlaku hingga {key_data['expiration_date']}"}), 200
+            emit("validation_result", {"success": True, "message": f"Key valid! Berlaku hingga {key_data['expiration_date']}"})
+            return
 
-        return jsonify({"success": False, "message": "Key tidak valid"}), 404
+        emit("validation_result", {"success": False, "message": "Key tidak valid"})
+        
+# Event saat klien memutuskan koneksi
+@socketio.on("disconnect")
+def handle_disconnect():
+    print("Client disconnected.")
+
 
 
 def run_flask():
