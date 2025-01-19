@@ -202,7 +202,7 @@ def delete_key():
             st.error("Tidak ada key yang dipilih.")
 
 def display_active_keys():
-    keys_data = load_keys()  # Memuat data keys dari load_keys()
+    keys_data = load_keys()
 
     st.subheader("Daftar Key yang Aktif atau Tidak Valid")
     if keys_data:
@@ -213,23 +213,23 @@ def display_active_keys():
                     last_active_obj = datetime.strptime(data["last_active"], "%Y-%m-%dT%H:%M:%S")
                     current_time = datetime.now()
 
-                    # Periksa apakah key sudah kedaluwarsa terlebih dahulu
+                    # Periksa apakah key sudah kedaluwarsa
                     if expiration_date_obj < current_time:
                         data["is_active"] = False
-                        status_message = "Kedaluwarsa"
                         status_icon = "❌"  # Ikon silang merah untuk kedaluwarsa
+                        status_message = "Kedaluwarsa"
                     else:
-                        # Jika key masih berlaku, periksa aktivitas terakhir
+                        # Status berdasarkan aktivitas terakhir
                         if (current_time - last_active_obj).total_seconds() <= 10:
                             data["is_active"] = True
+                            status_icon = "🟢"  # Lampu hijau untuk aktif
                             status_message = "Aktif"
-                            status_icon = "🟢"  # Lampu hijau
                         else:
                             data["is_active"] = False
+                            status_icon = "🔴"  # Lampu merah untuk tidak aktif
                             status_message = "Tidak Aktif"
-                            status_icon = "🔴"  # Lampu merah
 
-                    # Tampilkan informasi key dengan statusnya
+                    # Tampilkan informasi key
                     st.markdown(
                         f"""
                         <div style="font-size:15px; color:#CAF4FF;">
@@ -239,13 +239,13 @@ def display_active_keys():
                         """,
                         unsafe_allow_html=True
                     )
-
                 except ValueError:
                     st.error(f"Format tanggal untuk key `{key}` tidak valid.")
             else:
                 st.error(f"Data untuk key `{key}` tidak lengkap atau tidak memiliki informasi pengguna.")
     else:
         st.write("Tidak ada key yang tersimpan.")
+
 
 
 
@@ -283,23 +283,17 @@ def validate_key(data):
 
             current_time = datetime.now()
 
-            last_active_str = key_data.get("last_active", None)
-            if last_active_str:
-                last_active = datetime.strptime(last_active_str, "%Y-%m-%dT%H:%M:%S")
-                # Jika aktivitas terakhir ditemukan, perbarui status aktif berdasarkan aktivitas Socket.IO
-                if (current_time - last_active).total_seconds() <= 10:
-                    key_data["is_active"] = True
-                else:
-                    key_data["is_active"] = False
-
-            # Perbarui waktu aktivitas terbaru (berdasarkan waktu sekarang) jika key valid
+            # Tandai key sebagai aktif
+            key_data["is_active"] = True
             key_data["last_active"] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
+
             save_keys(keys_data)
 
             emit("validation_result", {"success": True, "message": f"Key valid! Berlaku hingga {key_data['expiration_date']}"})
             return
 
         emit("validation_result", {"success": False, "message": "Key tidak valid"})
+
 
         
 # Event saat klien memutuskan koneksi
