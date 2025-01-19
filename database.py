@@ -200,70 +200,128 @@ def delete_key():
         else:
             st.error("Tidak ada key yang dipilih.")
 
-# Ganti dengan URL ngrok Anda
-ngrok_url = "https://e9cd-35-197-92-111.ngrok-free.app"  # Ganti dengan URL ngrok yang aktif
+import streamlit as st
+import socketio
+from datetime import datetime
 
-# Hubungkan ke server SocketIO
-sio = socketio.Client()
+# Ganti dengan token yang valid
+token = "2rW0ORNPBUVgKvdeC4J5HIKsKLy_7KRz8jfykHYhwmjpiqUx6"
 
-# Variabel untuk menyimpan data key
-keys_data = []
+# Ganti dengan endpoint API ngrok untuk mendapatkan informasi tunnel
+ngrok_api_url = "https://api.ngrok.com/tunnels"
 
-# Fungsi untuk menerima data dari server
-@sio.on("active_keys")
-def handle_active_keys(data):
-    global keys_data
-    keys_data = data
-    st.experimental_rerun()  # Merender ulang aplikasi setiap kali data diperbarui
+# Set header untuk autentikasi menggunakan token
+headers = {
+    "Authorization": f"Bearer {token}",
+    "Content-Type": "application/json"
+}
 
-# Hubungkan ke server menggunakan URL ngrok
-sio.connect(ngrok_url)
+# Mengirim permintaan GET untuk mendapatkan informasi tunnel
+import requests
 
-def display_active_keys():
-    st.subheader("Daftar Key yang Aktif atau Tidak Valid")
-    if keys_data:
-        for key, data in keys_data.items():
-            if "expiration_date" in data and "last_active" in data and "user" in data:
-                try:
-                    expiration_date_obj = datetime.strptime(data["expiration_date"], "%Y-%m-%d")
-                    last_active_obj = datetime.strptime(data["last_active"], "%Y-%m-%dT%H:%M:%S")
-                    current_time = datetime.now()
+response = requests.get(ngrok_api_url, headers=headers)
 
-                    # Tentukan status berdasarkan waktu aktivitas terakhir dan tanggal kedaluwarsa
-                    if expiration_date_obj >= current_time:
-                        if (current_time - last_active_obj).total_seconds() <= 10:
-                            data["is_active"] = True
-                            status_message = "Aktif"
-                            status_icon = "🟢"  # Lampu hijau
+# Mengecek apakah permintaan berhasil
+if response.status_code == 200:
+    # Mengambil data dari respon JSON
+    tunnels_data = response.json()
+    if tunnels_data.get("tunnels"):
+        # Mendapatkan URL ngrok yang aktif
+        ngrok_url = tunnels_data["tunnels"][0]["public_url"]
+    else:
+        st.write("Tidak ada tunnel yang aktif.")
+        ngrok_url = None
+else:
+    st.write(f"Gagal mendapatkan URL ngrok: {response.status_code} - {response.text}")
+    ngrok_url = None
+
+# Jika URL ngrok berhasil didapatkan
+if ngrok_url:
+    # Hubungkan ke server SocketIO
+    sio = socketio.Client()
+
+    # Variabel untuk menyimpan data key
+    keys_data = []
+
+    # Menyimpan status pengguna
+    user_status = {}
+
+    # Fungsi untuk menerima data status pengguna
+    @sio.on("user_status")
+    def handle_user_status(data):
+        global user_status
+        user_status = data
+        st.experimental_rerun()  # Merender ulang aplikasi setiap kali status diperbarui
+
+    # Hubungkan ke server menggunakan URL ngrok yang sudah didapatkan
+    sio.connect(ngrok_url)
+
+    # Menampilkan daftar key aktif dan statusnya
+    def display_active_keys():
+        st.subheader("Daftar Key yang Aktif atau Tidak Valid")
+        if keys_data:
+            for key, data in keys_data.items():
+                if "expiration_date" in data and "last_active" in data and "user" in data:
+                    try:
+                        expiration_date_obj = datetime.strptime(data["expiration_date"], "%Y-%m-%d")
+                        last_active_obj = datetime.strptime(data["last_active"], "%Y-%m-%dT%H:%M:%S")
+                        current_time = datetime.now()
+
+                        # Tentukan status berdasarkan waktu aktivitas terakhir dan tanggal kedaluwarsa
+                        if expiration_date_obj >= current_time:
+                            if (current_time - last_active_obj).total_seconds() <= 10:
+                                data["is_active"] = True
+                                status_message = "Aktif"
+                                status_icon = "🟢"  # Lampu hijau
+                            else:
+                                data["is_active"] = False
+                                status_message = "Tidak Aktif"
+                                status_icon = "🔴"  # Lampu merah
                         else:
                             data["is_active"] = False
-                            status_message = "Tidak Aktif"
-                            status_icon = "🔴"  # Lampu merah
-                    else:
-                        data["is_active"] = False
-                        status_message = "Kedaluwarsa"
-                        status_icon = "❌"  # Ikon silang merah
+                            status_message = "Kedaluwarsa"
+                            status_icon = "❌"  # Ikon silang merah
 
-                    # Tampilkan informasi key dengan statusnya
-                    st.markdown(
-                        f"""
-                        <div style="font-size:15px; color:#CAF4FF;">
-                            {status_icon} Key: `{key}`, Status: {status_message}, 
-                            Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}`
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
+                        # Tampilkan informasi key dengan statusnya
+                        st.markdown(
+                            f"""
+                            <div style="font-size:15px; color:#CAF4FF;">
+                                {status_icon} Key: `{key}`, Status: {status_message}, 
+                                Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}`
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
 
-                except ValueError:
-                    st.error(f"Format tanggal untuk key `{key}` tidak valid.")
-            else:
-                st.error(f"Data untuk key `{key}` tidak lengkap atau tidak memiliki informasi pengguna.")
-    else:
-        st.write("Tidak ada key yang tersimpan.")
+                    except ValueError:
+                        st.error(f"Format tanggal untuk key `{key}` tidak valid.")
+                else:
+                    st.error(f"Data untuk key `{key}` tidak lengkap atau tidak memiliki informasi pengguna.")
+        else:
+            st.write("Tidak ada key yang tersimpan.")
 
-# Menampilkan active keys setiap kali data diterima
-display_active_keys()
+    # Menampilkan status pengguna yang diterima dari server
+    def display_user_status():
+        if user_status:
+            status_message = user_status.get("status")
+            username = user_status.get("username")
+            icon = user_status.get("icon", "🔵")
+
+            st.markdown(
+                f"""
+                <div style="font-size:15px; color:#CAF4FF;">
+                    {icon} Pengguna: `{username}`, Status: {status_message}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.write("Tidak ada status pengguna yang diterima.")
+
+    # Menampilkan active keys dan status pengguna
+    display_active_keys()
+    display_user_status()
+
 
 # Flask API untuk validasi key
 app = Flask(__name__)
