@@ -256,7 +256,7 @@ if ngrok_url:
     # Hubungkan ke server menggunakan URL ngrok yang sudah didapatkan
     sio.connect(ngrok_url)
 
-   def display_active_keys():
+def display_active_keys():
     # Pastikan kode ini ada dan tidak salah penulisan
     st.subheader("Daftar Key yang Aktif atau Tidak Valid")
     if keys_data:
