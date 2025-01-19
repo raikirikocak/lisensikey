@@ -10,7 +10,7 @@ import socket
 from pyngrok import ngrok, conf
 from threading import Lock
 from flask_socketio import SocketIO, emit
-import socketio
+
 
 # Fungsi untuk menyimpan status login ke file JSON
 def save_login_status():
