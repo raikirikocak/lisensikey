@@ -201,50 +201,56 @@ def delete_key():
         else:
             st.error("Tidak ada key yang dipilih.")
 
+# Fungsi untuk menampilkan status key
 def display_active_keys():
     keys_data = load_keys()
-
     st.subheader("Daftar Key yang Aktif atau Tidak Valid")
+
+    # Periksa status koneksi WebSocket
+    if "connected" in st.session_state and st.session_state["connected"]:
+        connection_icon = "🟢"
+        connection_message = "WebSocket Aktif"
+    else:
+        connection_icon = "🔴"
+        connection_message = "WebSocket Terputus"
+
+    st.markdown(f"**Status WebSocket: {connection_icon} {connection_message}**")
+
     if keys_data:
         for key, data in keys_data.items():
-            if "expiration_date" in data and "last_active" in data and "user" in data:
-                try:
-                    expiration_date_obj = datetime.strptime(data["expiration_date"], "%Y-%m-%d")
-                    last_active_obj = datetime.strptime(data["last_active"], "%Y-%m-%dT%H:%M:%S")
-                    current_time = datetime.now()
+            try:
+                expiration_date_obj = datetime.strptime(data["expiration_date"], "%Y-%m-%d")
+                current_time = datetime.now()
 
-                    # Periksa apakah key sudah kedaluwarsa
-                    if expiration_date_obj < current_time:
-                        data["is_active"] = False
-                        status_icon = "❌"  # Ikon silang merah untuk kedaluwarsa
-                        status_message = "Kedaluwarsa"
-                    else:
-                        # Status berdasarkan aktivitas terakhir
-                        if (current_time - last_active_obj).total_seconds() <= 10:
-                            data["is_active"] = True
-                            status_icon = "🟢"  # Lampu hijau untuk aktif
-                            status_message = "Aktif"
-                        else:
-                            data["is_active"] = False
-                            status_icon = "🔴"  # Lampu merah untuk tidak aktif
-                            status_message = "Tidak Aktif"
+                if expiration_date_obj < current_time:
+                    status_icon = "❌"
+                    status_message = "Kedaluwarsa"
+                else:
+                    status_icon = connection_icon  # Gunakan status koneksi
+                    status_message = connection_message
 
-                    # Tampilkan informasi key
-                    st.markdown(
-                        f"""
-                        <div style="font-size:15px; color:#CAF4FF;">
-                            {status_icon} Key: `{key}`, Status: {status_message}, 
-                            Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}`
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                except ValueError:
-                    st.error(f"Format tanggal untuk key `{key}` tidak valid.")
-            else:
-                st.error(f"Data untuk key `{key}` tidak lengkap atau tidak memiliki informasi pengguna.")
+                # Tampilkan informasi key
+                st.markdown(
+                    f"""
+                    <div style="font-size:15px; color:#CAF4FF;">
+                        {status_icon} Key: `{key}`, Status: {status_message}, 
+                        Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}`
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            except ValueError:
+                st.error(f"Format tanggal untuk key `{key}` tidak valid.")
     else:
         st.write("Tidak ada key yang tersimpan.")
+
+# Loop untuk memperbarui tampilan secara berkala
+if "connected" not in st.session_state:
+    st.session_state["connected"] = False  # Default status WebSocket
+
+while True:
+    display_active_keys()
+    time.sleep(5)  # Perbarui setiap 5 detik
 
 
 
