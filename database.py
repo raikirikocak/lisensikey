@@ -248,10 +248,18 @@ CORS(app)
 socketio = SocketIO(app)
 lock = Lock()
 
-# Event saat klien terhubung
+# Menggunakan session state untuk status WebSocket
 @socketio.on("connect")
 def handle_connect():
     print("Client connected.")
+    # Mengubah status WebSocket terhubung menjadi True
+    st.session_state["connected"] = True
+
+@socketio.on("disconnect")
+def handle_disconnect():
+    print("Client disconnected.")
+    # Mengubah status WebSocket terputus menjadi False
+    st.session_state["connected"] = False
 
 @socketio.on("validate_key")
 def validate_key(data):
@@ -275,25 +283,21 @@ def validate_key(data):
 
             current_time = datetime.now()
 
-            # Tandai key sebagai aktif
-            key_data["is_active"] = True
-            key_data["last_active"] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
+            # Memperbarui status aktif berdasarkan WebSocket
+            # Jika WebSocket terputus, maka key dianggap tidak aktif
+            if st.session_state.get("connected", False):
+                key_data["is_active"] = True  # WebSocket aktif, key dianggap aktif
+            else:
+                key_data["is_active"] = False  # WebSocket terputus, key dianggap tidak aktif
 
+            # Perbarui aktivitas terbaru jika key valid
+            key_data["last_active"] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
             save_keys(keys_data)
 
             emit("validation_result", {"success": True, "message": f"Key valid! Berlaku hingga {key_data['expiration_date']}"})
             return
 
         emit("validation_result", {"success": False, "message": "Key tidak valid"})
-
-
-        
-# Event saat klien memutuskan koneksi
-@socketio.on("disconnect")
-def handle_disconnect():
-    print("Client disconnected.")
-
-
 
 def run_flask():
     conf.get_default().auth_token = "2rW0ORNPBUVgKvdeC4J5HIKsKLy_7KRz8jfykHYhwmjpiqUx6"
