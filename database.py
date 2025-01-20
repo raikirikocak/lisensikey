@@ -201,7 +201,6 @@ def delete_key():
         else:
             st.error("Tidak ada key yang dipilih.")
 
-# Fungsi untuk menampilkan status key
 def display_active_keys():
     keys_data = load_keys()
     st.subheader("Daftar Key yang Aktif atau Tidak Valid")
@@ -211,6 +210,9 @@ def display_active_keys():
     connection_message = "WebSocket Aktif" if st.session_state.get("connected", False) else "WebSocket Terputus"
 
     st.markdown(f"**Status WebSocket: {connection_icon} {connection_message}**")
+    
+    # Debugging
+    st.write(f"Keys Data: {keys_data}")  # Debug untuk memastikan data dimuat
 
     if keys_data:
         for key, data in keys_data.items():
@@ -222,16 +224,14 @@ def display_active_keys():
                     status_icon = "❌"
                     status_message = "Kedaluwarsa"
                 else:
-                    # Gunakan status koneksi untuk ikon
                     status_icon = connection_icon
                     status_message = connection_message
 
-                # Tampilkan informasi key
                 st.markdown(
                     f"""
                     <div style="font-size:15px; color:#CAF4FF;">
                         {status_icon} Key: `{key}`, Status: {status_message}, 
-                        Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}`
+                        Berlaku hingga: {data["expiration_date"]}, Pengguna: `{data["user"]}` 
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -240,7 +240,7 @@ def display_active_keys():
                 st.error(f"Format tanggal untuk key `{key}` tidak valid.")
     else:
         st.write("Tidak ada key yang tersimpan.")
-        
+
 # Flask API untuk validasi key
 app = Flask(__name__)
 CORS(app)
