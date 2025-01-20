@@ -207,12 +207,8 @@ def display_active_keys():
     st.subheader("Daftar Key yang Aktif atau Tidak Valid")
 
     # Periksa status koneksi WebSocket
-    if "connected" in st.session_state and st.session_state["connected"]:
-        connection_icon = "🟢"
-        connection_message = "WebSocket Aktif"
-    else:
-        connection_icon = "🔴"
-        connection_message = "WebSocket Terputus"
+    connection_icon = "🟢" if st.session_state.get("connected", False) else "🔴"
+    connection_message = "WebSocket Aktif" if st.session_state.get("connected", False) else "WebSocket Terputus"
 
     st.markdown(f"**Status WebSocket: {connection_icon} {connection_message}**")
 
@@ -226,7 +222,8 @@ def display_active_keys():
                     status_icon = "❌"
                     status_message = "Kedaluwarsa"
                 else:
-                    status_icon = connection_icon  # Gunakan status koneksi
+                    # Gunakan status koneksi untuk ikon
+                    status_icon = connection_icon
                     status_message = connection_message
 
                 # Tampilkan informasi key
@@ -243,18 +240,7 @@ def display_active_keys():
                 st.error(f"Format tanggal untuk key `{key}` tidak valid.")
     else:
         st.write("Tidak ada key yang tersimpan.")
-
-# Loop untuk memperbarui tampilan secara berkala
-if "connected" not in st.session_state:
-    st.session_state["connected"] = False  # Default status WebSocket
-
-while True:
-    display_active_keys()
-    time.sleep(5)  # Perbarui setiap 5 detik
-
-
-
-
+        
 # Flask API untuk validasi key
 app = Flask(__name__)
 CORS(app)
